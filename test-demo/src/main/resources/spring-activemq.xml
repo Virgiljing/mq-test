@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="com.virgilin.mqtest.activemq.spring" />
+    <bean class="org.apache.activemq.pool.PooledConnectionFactory" id="jmsFactory" destroy-method="stop">
+        <property name="connectionFactory">
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL">
+                    <value>tcp://localhost:61616</value>
+                </property>
+            </bean>
+        </property>
+        <property name="maxConnections" value="100"></property>
+    </bean>
+
+    <bean class="org.springframework.jms.connection.CachingConnectionFactory" id="cachingConnectionFactory">
+        <property name="targetConnectionFactory" ref="jmsFactory"></property>
+        <property name="sessionCacheSize" value="1"></property>
+    </bean>
+
+    <bean class="org.springframework.jms.core.JmsTemplate" id="jmsTemplate">
+        <property name="connectionFactory" ref="cachingConnectionFactory"></property>
+        <property name="messageConverter" >
+            <bean class="org.springframework.jms.support.converter.SimpleMessageConverter"></bean>
+        </property>
+    </bean>
+
+    <bean class="org.apache.activemq.command.ActiveMQQueue" id="testQueue">
+        <constructor-arg name="name" value="spring-queue"/>
+    </bean>
+
+    <bean class="org.apache.activemq.command.ActiveMQTopic" id="testTopic">
+        <constructor-arg index="0" value="spring-topic"/>
+    </bean>
+
+    <bean id="queueListener" class="com.virgilin.mqtest.activemq.spring.QueueListener"/>
+    <bean id="topic1Listener" class="com.virgilin.mqtest.activemq.spring.TopicListener"/>
+    <bean id="topic2Listener" class="com.virgilin.mqtest.activemq.spring.Topic2Listener"/>
+
+    <bean id="queueContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="cachingConnectionFactory"/>
+        <property name="destination" ref="testQueue"/>
+        <property name="messageListener" ref="queueListener"/>
+    </bean>
+
+    <bean id="topic1Container" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="cachingConnectionFactory"/>
+        <property name="destination" ref="testTopic"/>
+        <property name="messageListener" ref="topic1Listener"/>
+     </bean>
+
+
+    <bean id="topic2Container" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="cachingConnectionFactory"/>
+        <property name="destination" ref="testTopic"/>
+        <property name="messageListener" ref="topic2Listener"/>
+    </bean>
+
+</beans>
